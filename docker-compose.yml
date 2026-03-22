@@ -16,6 +16,15 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sap-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   neo4j_data:
   neo4j_logs:
+  ollama_data:
