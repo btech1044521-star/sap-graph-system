@@ -98,23 +98,26 @@ def is_guardrail_response(text: str) -> bool:
 
 
 def _call_ollama(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    """Call Ollama REST API for chat completions."""
-    messages = [{"role": "system", "content": system}]
+    """Call Ollama REST API using /api/generate endpoint."""
+    # Build a single prompt combining system instructions, history, and user query
+    parts = [f"[SYSTEM]\n{system}\n[/SYSTEM]\n"]
 
     if conversation_history:
         for msg in conversation_history[-6:]:
-            role = "user" if msg["role"] == "user" else "assistant"
-            messages.append({"role": role, "content": msg["content"]})
+            role = msg.get("role", "user").upper()
+            parts.append(f"[{role}]\n{msg['content']}\n")
 
-    messages.append({"role": "user", "content": prompt})
+    parts.append(f"[USER]\n{prompt}\n[/USER]\n[ASSISTANT]\n")
+
+    full_prompt = "\n".join(parts)
 
     with httpx.Client(timeout=120.0) as client:
         resp = client.post(
-            f"{OLLAMA_BASE_URL}/api/chat",
-            json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
+            f"{OLLAMA_BASE_URL}/api/generate",
+            json={"model": OLLAMA_MODEL, "prompt": full_prompt, "stream": False},
         )
         resp.raise_for_status()
-        return resp.json()["message"]["content"].strip()
+        return resp.json()["response"].strip()
 
 
 def _call_gemini(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
