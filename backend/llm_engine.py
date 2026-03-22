@@ -1,13 +1,22 @@
 """
 LLM-powered query engine: Translates natural language to Cypher queries
-using Google Gemini, executes them against Neo4j, and returns natural language answers.
+using Ollama (local) or Google Gemini, executes them against Neo4j,
+and returns natural language answers.
 """
 
-import google.generativeai as genai
-from config import GEMINI_API_KEY
+import httpx
+from config import GEMINI_API_KEY, OLLAMA_BASE_URL, OLLAMA_MODEL, LLM_PROVIDER
 from database import run_cypher
 
-genai.configure(api_key=GEMINI_API_KEY)
+# Lazy import Gemini only if needed
+_genai = None
+def _get_genai():
+    global _genai
+    if _genai is None:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        _genai = genai
+    return _genai
 
 GRAPH_SCHEMA = """
 Neo4j Graph Schema for SAP Order-to-Cash system:
@@ -88,32 +97,65 @@ def is_guardrail_response(text: str) -> bool:
     return text.strip().startswith("GUARDRAIL:")
 
 
-def generate_cypher(user_query: str, conversation_history: list[dict] = None) -> str:
-    """Use Gemini to translate natural language to Cypher."""
+def _call_ollama(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Call Ollama REST API for chat completions."""
+    messages = [{"role": "system", "content": system}]
+
+    if conversation_history:
+        for msg in conversation_history[-6:]:
+            role = "user" if msg["role"] == "user" else "assistant"
+            messages.append({"role": role, "content": msg["content"]})
+
+    messages.append({"role": "user", "content": prompt})
+
+    with httpx.Client(timeout=120.0) as client:
+        resp = client.post(
+            f"{OLLAMA_BASE_URL}/api/chat",
+            json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
+        )
+        resp.raise_for_status()
+        return resp.json()["message"]["content"].strip()
+
+
+def _call_gemini(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Call Google Gemini API."""
+    genai = _get_genai()
     model = genai.GenerativeModel("gemini-2.0-flash")
 
-    messages = [{"role": "user", "parts": [SYSTEM_PROMPT]}]
+    messages = [{"role": "user", "parts": [system]}]
     messages.append({"role": "model", "parts": ["Understood. I will generate Cypher queries for SAP O2C data or return a GUARDRAIL message for off-topic questions."]})
 
     if conversation_history:
         for msg in conversation_history[-6:]:
             messages.append({"role": msg["role"], "parts": [msg["content"]]})
 
-    messages.append({"role": "user", "parts": [f"Generate a Cypher query for: {user_query}"]})
+    messages.append({"role": "user", "parts": [prompt]})
 
     response = model.generate_content(messages)
     return response.text.strip()
 
 
+def _call_llm(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Route to the configured LLM provider."""
+    if LLM_PROVIDER == "gemini":
+        return _call_gemini(system, prompt, conversation_history)
+    return _call_ollama(system, prompt, conversation_history)
+
+
+def generate_cypher(user_query: str, conversation_history: list[dict] = None) -> str:
+    """Use LLM to translate natural language to Cypher."""
+    return _call_llm(
+        SYSTEM_PROMPT,
+        f"Generate a Cypher query for: {user_query}",
+        conversation_history,
+    )
+
+
 def generate_answer(user_query: str, cypher_query: str, results: list[dict]) -> str:
-    """Use Gemini to generate a natural language answer from query results."""
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    """Use LLM to generate a natural language answer from query results."""
+    results_str = str(results[:50])
 
-    results_str = str(results[:50])  # Cap to prevent token overflow
-
-    prompt = f"""{ANSWER_PROMPT}
-
-User Question: {user_query}
+    prompt = f"""User Question: {user_query}
 
 Cypher Query Executed: {cypher_query}
 
@@ -122,8 +164,7 @@ Query Results (up to 50 rows):
 
 Provide a natural language answer:"""
 
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    return _call_llm(ANSWER_PROMPT, prompt)
 
 
 def query(user_query: str, conversation_history: list[dict] = None) -> dict:
