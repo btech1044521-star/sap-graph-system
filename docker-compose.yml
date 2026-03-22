@@ -24,6 +24,16 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
+  ollama-webui:
+    image: ollama-webui/ollama-webui:main
+    container_name: sap-ollama-webui
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_API_BASE_URL=http://ollama:11434/api
+    depends_on:
+      - ollama
+
 volumes:
   neo4j_data:
   neo4j_logs:
