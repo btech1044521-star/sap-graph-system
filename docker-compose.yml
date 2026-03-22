@@ -25,12 +25,12 @@ services:
       - ollama_data:/root/.ollama
 
   ollama-webui:
-    image: ollama-webui/ollama-webui:main
+    image: ghcr.io/open-webui/open-webui:main
     container_name: sap-ollama-webui
     ports:
       - "3000:8080"
     environment:
-      - OLLAMA_API_BASE_URL=http://ollama:11434/api
+      - OLLAMA_BASE_URL=http://ollama:11434
     depends_on:
       - ollama
 
