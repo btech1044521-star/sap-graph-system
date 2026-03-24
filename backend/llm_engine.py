@@ -459,21 +459,14 @@ def is_guardrail_response(text: str) -> bool:
     return text.strip().startswith("GUARDRAIL:")
 
 
-# Free models on OpenRouter to rotate through on 429
-OPENROUTER_FREE_MODELS = [
-    OPENROUTER_MODEL,                             # configured primary
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen3-235b-a22b:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "google/gemma-3-27b-it:free",
-]
-# Deduplicate while preserving order
-OPENROUTER_FREE_MODELS = list(dict.fromkeys(OPENROUTER_FREE_MODELS))
+def _call_openrouter(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Call OpenRouter with configured model."""
+    messages = [{"role": "system", "content": system}]
+    if conversation_history:
+        for msg in conversation_history[-6:]:
+            messages.append({"role": msg.get("role", "user"), "content": msg["content"]})
+    messages.append({"role": "user", "content": prompt})
 
-
-def _call_openrouter_model(model: str, messages: list[dict]) -> str:
-    """Call a specific model on OpenRouter."""
     with httpx.Client(timeout=120.0) as client:
         resp = client.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -481,35 +474,11 @@ def _call_openrouter_model(model: str, messages: list[dict]) -> str:
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={"model": model, "messages": messages},
+            json={"model": OPENROUTER_MODEL, "messages": messages},
         )
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
-
-
-def _call_openrouter(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    """Call OpenRouter, rotating through free models on 429."""
-    messages = [{"role": "system", "content": system}]
-    if conversation_history:
-        for msg in conversation_history[-6:]:
-            messages.append({"role": msg.get("role", "user"), "content": msg["content"]})
-    messages.append({"role": "user", "content": prompt})
-
-    last_error = None
-    for model in OPENROUTER_FREE_MODELS:
-        try:
-            result = _call_openrouter_model(model, messages)
-            logger.info(f"OpenRouter succeeded with model {model}")
-            return result
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code in (429, 502, 503, 529):
-                logger.warning(f"OpenRouter model {model} returned {e.response.status_code}, rotating...")
-                last_error = e
-                continue
-            raise
-    # All OpenRouter models exhausted — re-raise so outer failover kicks in
-    raise last_error or RuntimeError("All OpenRouter free models exhausted")
 
 
 def _call_groq(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
@@ -578,7 +547,7 @@ def _build_provider_chain() -> list:
 
 
 def _call_llm(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    """Call LLM with automatic failover across providers on 429/5xx errors."""
+    """Call LLM with automatic failover across providers on any error."""
     providers = _build_provider_chain()
     if not providers:
         raise RuntimeError("No LLM API keys configured. Set OPENROUTER_API_KEY, GROQ_API_KEY, or GEMINI_API_KEY in .env")
@@ -589,15 +558,8 @@ def _call_llm(system: str, prompt: str, conversation_history: list[dict] = None)
             result = call_fn(system, prompt, conversation_history)
             logger.info(f"LLM call succeeded via {name}")
             return result
-        except httpx.HTTPStatusError as e:
-            status = e.response.status_code
-            if status in (429, 502, 503, 529):
-                logger.warning(f"Provider {name} returned {status}, trying next provider...")
-                last_error = e
-                continue
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException) as e:
-            logger.warning(f"Provider {name} connection failed: {e}, trying next...")
+        except Exception as e:
+            logger.warning(f"Provider {name} failed: {e}, trying next provider...")
             last_error = e
             continue
 
