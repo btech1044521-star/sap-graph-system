@@ -191,7 +191,7 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
       const mat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(0x818cf8),
         transparent: true,
-        opacity: 0,
+        opacity: 0.6,
       })
       const spark = new THREE.Mesh(geo, mat)
       spark.userData.phase = i / sparkCount
@@ -210,10 +210,11 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
         start.y + (end.y - start.y) * progress,
         start.z + (end.z - start.z) * progress
       )
-      // Electrical flicker — rapid on/off with brightness variation
-      const flicker = Math.sin(t * 14 + spark.userData.phase * 8)
-      const burst = Math.pow(Math.max(0, Math.sin(t * 5 + spark.userData.phase * 4)), 3)
-      spark.material.opacity = Math.max(0, 0.15 + flicker * 0.25 + burst * 0.6)
+      // Continuous pulse — always visible, smoothly oscillating brightness
+      const pulse = 0.55 + 0.45 * Math.sin(t * 6 + spark.userData.phase * Math.PI * 2)
+      spark.material.opacity = pulse
+      const scale = 0.8 + 0.4 * pulse
+      spark.scale.set(scale, scale, scale)
       // Spin for dynamic spark look
       spark.rotation.x = t * 3.5
       spark.rotation.z = t * 2.8 + spark.userData.phase * Math.PI
