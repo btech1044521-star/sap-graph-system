@@ -163,9 +163,9 @@ export default function Sidebar({ overview, selectedNode, onNodeSelect, onExpand
       )}
 
       {!nodeDetail && !searchResults.length && (
-        <div style={{ padding: '20px 24px', color: '#555', fontSize: 12, lineHeight: 1.6 }}>
+        <div style={{ padding: '20px 24px', color: '#9ca3af', fontSize: 12, lineHeight: 1.6 }}>
           <p>Click a node in the 3D graph or search above to inspect it.</p>
-          <p style={{ marginTop: 10, color: '#444' }}>
+          <p style={{ marginTop: 10, color: '#6b7280' }}>
             Hover over nodes to see details. Click to expand and traverse the graph.
           </p>
         </div>

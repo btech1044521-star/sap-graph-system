@@ -5,18 +5,18 @@ import Sidebar from './Sidebar'
 import { fetchGraphOverview, fetchGraphSample } from './api'
 
 const NODE_COLORS = {
-  Customer: '#ffffff',
-  SalesOrder: '#cccccc',
-  SalesOrderItem: '#b0b0b0',
-  Delivery: '#e0e0e0',
-  DeliveryItem: '#c8c8c8',
-  BillingDocument: '#999999',
-  BillingDocumentItem: '#8a8a8a',
-  JournalEntry: '#d5d5d5',
-  Payment: '#aaaaaa',
-  Product: '#777777',
-  Plant: '#666666',
-  Address: '#555555',
+  Customer: '#6366f1',
+  SalesOrder: '#22d3ee',
+  SalesOrderItem: '#38bdf8',
+  Delivery: '#f97316',
+  DeliveryItem: '#fb923c',
+  BillingDocument: '#a78bfa',
+  BillingDocumentItem: '#c084fc',
+  JournalEntry: '#34d399',
+  Payment: '#facc15',
+  Product: '#f472b6',
+  Plant: '#4ade80',
+  Address: '#94a3b8',
 }
 
 export default function App() {

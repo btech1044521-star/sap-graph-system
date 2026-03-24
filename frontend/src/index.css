@@ -5,20 +5,24 @@
 }
 
 :root {
-  --bg-primary: #000000;
-  --bg-secondary: #0a0a0a;
-  --bg-tertiary: #151515;
-  --text-primary: #e8e8e8;
-  --text-secondary: #777777;
-  --accent: #ffffff;
-  --accent-hover: #cccccc;
-  --border: #1e1e1e;
-  --border-light: #2a2a2a;
-  --surface: #111111;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f0f1f3;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --accent: #4f46e5;
+  --accent-light: #e0e7ff;
+  --border: #e5e7eb;
+  --border-light: #d1d5db;
+  --surface: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --radius: 8px;
 }
 
 body {
-  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -35,7 +39,7 @@ body {
 .sidebar {
   width: 320px;
   min-width: 320px;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -45,21 +49,20 @@ body {
 .sidebar-header {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
 }
 
 .sidebar-header h1 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--accent);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
   margin-bottom: 2px;
 }
 
 .sidebar-header p {
   font-size: 11px;
   color: var(--text-secondary);
-  letter-spacing: 0.3px;
 }
 
 /* ─── Stats ────────────────────────────────────────────── */
@@ -70,30 +73,31 @@ body {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
 }
 
 .stat-card {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 10px;
+  border-radius: var(--radius);
+  padding: 8px 8px;
   text-align: center;
 }
 
 .stat-card .count {
   font-size: 16px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-card .label {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.4px;
+  font-weight: 600;
 }
 
 /* ─── Search ───────────────────────────────────────────── */
@@ -109,21 +113,22 @@ body {
 .search-input {
   width: 100%;
   padding: 10px 14px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .search-input:focus {
-  border-color: #444;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .search-input::placeholder {
-  color: var(--text-secondary);
+  color: #9ca3af;
 }
 
 .search-results {
@@ -134,10 +139,10 @@ body {
 
 .search-result-item {
   padding: 8px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid transparent;
-  border-radius: 4px;
-  margin-bottom: 3px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -147,13 +152,13 @@ body {
 }
 
 .search-result-item:hover {
-  border-color: var(--border-light);
-  background: var(--surface);
+  background: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .node-badge {
   padding: 2px 8px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
@@ -191,14 +196,14 @@ body {
 }
 
 .properties-table td {
-  padding: 5px 0;
+  padding: 6px 0;
   font-size: 12px;
 }
 
 .properties-table td:first-child {
   color: var(--text-secondary);
   width: 40%;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .properties-table td:last-child {
@@ -217,14 +222,15 @@ body {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 700;
 }
 
 .neighbor-item {
   padding: 6px 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid transparent;
-  border-radius: 4px;
-  margin-bottom: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 4px;
   cursor: pointer;
   font-size: 12px;
   display: flex;
@@ -234,14 +240,14 @@ body {
 }
 
 .neighbor-item:hover {
-  border-color: var(--border-light);
-  background: var(--surface);
+  background: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .rel-type {
   font-size: 9px;
-  color: var(--text-secondary);
-  font-weight: 600;
+  color: var(--accent);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -259,20 +265,21 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: #000;
+  background: #0c0c1a;
+  border-radius: 0;
 }
 
 .graph-legend {
   position: absolute;
   top: 14px;
   left: 14px;
-  background: rgba(0,0,0,0.85);
+  background: rgba(255,255,255,0.95);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 10px 14px;
   z-index: 10;
   font-size: 11px;
-  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-md);
   max-height: 50%;
   overflow-y: auto;
 }
@@ -281,15 +288,17 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 3px;
-  color: var(--text-secondary);
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .legend-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 4px currentColor;
 }
 
 .graph-controls {
@@ -302,69 +311,68 @@ body {
 }
 
 .graph-controls button {
-  background: rgba(0,0,0,0.85);
+  background: rgba(255,255,255,0.95);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text-primary);
-  padding: 6px 14px;
+  padding: 7px 16px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
+  font-weight: 600;
   transition: all 0.15s;
-  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
 }
 
 .graph-controls button:hover {
-  background: rgba(255,255,255,0.1);
-  border-color: #444;
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 /* ─── 3D Tooltip ───────────────────────────────────────── */
 .graph-tooltip {
   position: absolute;
   z-index: 20;
-  background: rgba(10,10,10,0.95);
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  padding: 10px 14px;
+  background: rgba(255,255,255,0.97);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
   pointer-events: none;
-  min-width: 200px;
-  max-width: 320px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  min-width: 220px;
+  max-width: 340px;
+  box-shadow: var(--shadow-lg);
 }
 
 .tooltip-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .tooltip-badge {
-  padding: 2px 6px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 3px;
+  padding: 2px 8px;
+  background: var(--accent);
+  border-radius: 4px;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #ccc;
+  color: #fff;
 }
 
 .tooltip-id {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .tooltip-name {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 6px;
-  padding-bottom: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -374,38 +382,38 @@ body {
 }
 
 .tooltip-props td {
-  padding: 2px 0;
+  padding: 3px 0;
   font-size: 11px;
   vertical-align: top;
 }
 
 .tooltip-props td:first-child {
-  color: #666;
+  color: var(--text-secondary);
   width: 40%;
-  font-weight: 500;
+  font-weight: 600;
   padding-right: 8px;
 }
 
 .tooltip-props td:last-child {
-  color: #bbb;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
 .tooltip-hint {
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
   font-size: 10px;
-  color: #555;
+  color: var(--text-secondary);
   text-align: center;
   font-style: italic;
 }
 
 /* ─── Chat Panel ───────────────────────────────────────── */
 .chat-panel {
-  height: 350px;
-  min-height: 250px;
-  background: var(--bg-secondary);
+  height: 340px;
+  min-height: 240px;
+  background: var(--bg-primary);
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -417,12 +425,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--bg-secondary);
 }
 
 .chat-header h3 {
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .chat-messages {
@@ -432,12 +441,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: var(--bg-secondary);
 }
 
 .chat-message {
   max-width: 85%;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -445,34 +455,36 @@ body {
 
 .chat-message.user {
   align-self: flex-end;
-  background: #fff;
-  color: #000;
+  background: var(--accent);
+  color: #fff;
   border-bottom-right-radius: 2px;
 }
 
 .chat-message.assistant {
   align-self: flex-start;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   border: 1px solid var(--border);
   color: var(--text-primary);
   border-bottom-left-radius: 2px;
+  box-shadow: var(--shadow-sm);
 }
 
 .chat-message.guardrail {
-  background: var(--bg-tertiary);
-  border: 1px solid #333;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
 }
 
 .chat-message .cypher-block {
   margin-top: 8px;
   padding: 8px 10px;
-  background: var(--bg-primary);
+  background: #f1f5f9;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
   font-size: 11px;
   overflow-x: auto;
-  color: #999;
+  color: #475569;
 }
 
 .chat-input-area {
@@ -480,35 +492,37 @@ body {
   border-top: 1px solid var(--border);
   display: flex;
   gap: 8px;
+  background: var(--bg-primary);
 }
 
 .chat-input {
   flex: 1;
   padding: 10px 14px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .chat-input:focus {
-  border-color: #444;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .chat-input::placeholder {
-  color: #555;
+  color: #9ca3af;
 }
 
 .send-btn {
   padding: 10px 20px;
-  background: #fff;
+  background: var(--accent);
   border: none;
-  border-radius: 6px;
-  color: #000;
-  font-weight: 600;
+  border-radius: var(--radius);
+  color: #fff;
+  font-weight: 700;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
@@ -516,11 +530,11 @@ body {
 }
 
 .send-btn:hover {
-  background: #ddd;
+  background: #4338ca;
 }
 
 .send-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -531,10 +545,10 @@ body {
 }
 
 .loading-dots span {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #555;
+  background: var(--accent);
   animation: bounce 1.4s infinite ease-in-out both;
 }
 
@@ -548,7 +562,7 @@ body {
 
 /* ─── Scrollbar ────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -556,10 +570,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #222;
-  border-radius: 2px;
+  background: #d1d5db;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333;
+  background: #9ca3af;
 }

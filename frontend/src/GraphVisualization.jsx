@@ -152,8 +152,8 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
     // Glow ring for highlighted nodes
     if (isHighlighted) {
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(baseSize * 0.8, baseSize * 1.0, 24),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+        new THREE.RingGeometry(baseSize * 0.8, baseSize * 1.1, 32),
+        new THREE.MeshBasicMaterial({ color: 0x818cf8, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
       )
       mesh.add(ring)
     }
@@ -161,7 +161,7 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
     // Label sprite
     const displayName = (node.name || node.id).substring(0, 18)
     const sprite = new SpriteText(displayName)
-    sprite.color = isDimmed ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)'
+    sprite.color = isDimmed ? 'rgba(200,200,255,0.1)' : 'rgba(220,220,255,0.9)'
     sprite.textHeight = 2.5
     sprite.position.y = -(baseSize + 2)
     sprite.fontFace = 'Inter, Segoe UI, sans-serif'
@@ -243,16 +243,20 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
         nodeThreeObjectExtend={false}
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
-        linkColor={() => 'rgba(255,255,255,0.12)'}
-        linkWidth={0.3}
-        linkOpacity={0.2}
+        linkColor={() => 'rgba(120,140,255,0.25)'}
+        linkWidth={0.5}
+        linkOpacity={0.35}
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
-        linkDirectionalArrowColor={() => 'rgba(255,255,255,0.25)'}
+        linkDirectionalArrowColor={() => 'rgba(100,120,255,0.5)'}
+        linkDirectionalParticles={3}
+        linkDirectionalParticleWidth={1.8}
+        linkDirectionalParticleSpeed={0.006}
+        linkDirectionalParticleColor={() => '#818cf8'}
         cooldownTicks={80}
         d3AlphaDecay={0.04}
         d3VelocityDecay={0.3}
-        backgroundColor="#000000"
+        backgroundColor="#0c0c1a"
         showNavInfo={false}
         enableNavigationControls={true}
       />

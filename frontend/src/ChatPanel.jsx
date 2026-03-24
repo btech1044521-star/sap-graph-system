@@ -88,7 +88,7 @@ export default function ChatPanel({ onHighlightNodes }) {
     <div className="chat-panel">
       <div className="chat-header">
         <h3>Query Assistant</h3>
-        <span style={{ fontSize: 10, color: '#555', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+        <span style={{ fontSize: 10, color: '#9ca3af', letterSpacing: '0.5px', textTransform: 'uppercase', fontWeight: 600 }}>
           OpenRouter + Neo4j
         </span>
       </div>
@@ -111,17 +111,18 @@ export default function ChatPanel({ onHighlightNodes }) {
                 onClick={() => handleSend(q)}
                 style={{
                   padding: '6px 12px',
-                  background: '#111',
-                  border: '1px solid #222',
-                  borderRadius: 4,
-                  color: '#aaa',
+                  background: '#f0f1f3',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 6,
+                  color: '#4b5563',
                   fontSize: 11,
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'border-color 0.15s',
+                  transition: 'all 0.15s',
+                  fontWeight: 500,
                 }}
-                onMouseEnter={e => e.target.style.borderColor = '#444'}
-                onMouseLeave={e => e.target.style.borderColor = '#222'}
+                onMouseEnter={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.color = '#4f46e5' }}
+                onMouseLeave={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.color = '#4b5563' }}
               >
                 {q}
               </button>
