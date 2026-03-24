@@ -1,7 +1,6 @@
 """
 LLM-powered query engine: Translates natural language to Cypher queries
-using Ollama (local) or Google Gemini, executes them against Neo4j,
-and returns natural language answers.
+via OpenRouter, executes them against Neo4j, and returns natural language answers.
 
 Includes retry logic, syntax validation, auto-correction, dry-run testing,
 fallback simplification, and query metrics tracking.
@@ -14,22 +13,12 @@ import logging
 from typing import Optional
 
 from config import (
-    GEMINI_API_KEY, OLLAMA_BASE_URL, OLLAMA_MODEL, LLM_PROVIDER,
+    OPENROUTER_API_KEY, OPENROUTER_MODEL,
     MAX_CYPHER_RETRIES, CYPHER_TIMEOUT,
 )
 from database import run_cypher
 
 logger = logging.getLogger(__name__)
-
-# Lazy import Gemini only if needed
-_genai = None
-def _get_genai():
-    global _genai
-    if _genai is None:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
-        _genai = genai
-    return _genai
 
 
 # ============================================================================
@@ -238,43 +227,36 @@ def is_guardrail_response(text: str) -> bool:
     return text.strip().startswith("GUARDRAIL:")
 
 
-def _call_ollama(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    parts = [f"[SYSTEM]\n{system}\n[/SYSTEM]\n"]
+def _call_openrouter(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Call OpenRouter chat completions API."""
+    messages = [{"role": "system", "content": system}]
+
     if conversation_history:
         for msg in conversation_history[-6:]:
-            role = msg.get("role", "user").upper()
-            parts.append(f"[{role}]\n{msg['content']}\n")
-    parts.append(f"[USER]\n{prompt}\n[/USER]\n[ASSISTANT]\n")
-    full_prompt = "\n".join(parts)
+            messages.append({"role": msg.get("role", "user"), "content": msg["content"]})
+
+    messages.append({"role": "user", "content": prompt})
 
     with httpx.Client(timeout=120.0) as client:
         resp = client.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json={"model": OLLAMA_MODEL, "prompt": full_prompt, "stream": False},
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": OPENROUTER_MODEL,
+                "messages": messages,
+            },
         )
         resp.raise_for_status()
-        return resp.json()["response"].strip()
-
-
-def _call_gemini(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    genai = _get_genai()
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    messages = [
-        {"role": "user", "parts": [system]},
-        {"role": "model", "parts": ["Understood. I will generate Cypher queries for SAP O2C data or return a GUARDRAIL message for off-topic questions."]},
-    ]
-    if conversation_history:
-        for msg in conversation_history[-6:]:
-            messages.append({"role": msg["role"], "parts": [msg["content"]]})
-    messages.append({"role": "user", "parts": [prompt]})
-    response = model.generate_content(messages)
-    return response.text.strip()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
 
 
 def _call_llm(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    if LLM_PROVIDER == "gemini":
-        return _call_gemini(system, prompt, conversation_history)
-    return _call_ollama(system, prompt, conversation_history)
+    """Route all LLM calls through OpenRouter."""
+    return _call_openrouter(system, prompt, conversation_history)
 
 
 def generate_answer(user_query: str, cypher_query: str, results: list[dict]) -> str:

@@ -89,7 +89,7 @@ export default function ChatPanel({ onHighlightNodes }) {
       <div className="chat-header">
         <h3>Query Assistant</h3>
         <span style={{ fontSize: 10, color: '#555', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-          Gemini + Neo4j
+          OpenRouter + Neo4j
         </span>
       </div>
       <div className="chat-messages">
