@@ -26,6 +26,43 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
   const [hoverNode, setHoverNode] = useState(null)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
 
+  // Fly camera to highlighted nodes when query results come in
+  useEffect(() => {
+    if (!graphRef.current || highlightNodes.size === 0) return
+
+    const timer = setTimeout(() => {
+      const fg = graphRef.current
+      // Get nodes with live positions from the force graph's internal data
+      const gData = fg.graphData()
+      const matchedNodes = gData.nodes.filter(n =>
+        highlightNodes.has(n.id) && n.x !== undefined
+      )
+
+      if (matchedNodes.length === 0) return
+
+      // Compute centroid
+      const cx = matchedNodes.reduce((s, n) => s + n.x, 0) / matchedNodes.length
+      const cy = matchedNodes.reduce((s, n) => s + n.y, 0) / matchedNodes.length
+      const cz = matchedNodes.reduce((s, n) => s + n.z, 0) / matchedNodes.length
+
+      // Bounding radius for zoom distance
+      let maxDist = 0
+      for (const n of matchedNodes) {
+        const dx = n.x - cx, dy = n.y - cy, dz = n.z - cz
+        maxDist = Math.max(maxDist, Math.sqrt(dx * dx + dy * dy + dz * dz))
+      }
+      const distance = Math.max(100, maxDist * 2.5 + 60)
+
+      fg.cameraPosition(
+        { x: cx + distance * 0.6, y: cy + distance * 0.3, z: cz + distance },
+        { x: cx, y: cy, z: cz },
+        1500
+      )
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [highlightNodes])
+
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
