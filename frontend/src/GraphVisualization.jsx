@@ -181,6 +181,45 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
     }
   }
 
+  // Electrical spark objects per link
+  const createLinkSparks = useCallback(() => {
+    const group = new THREE.Group()
+    const sparkCount = 3
+    for (let i = 0; i < sparkCount; i++) {
+      const geo = new THREE.OctahedronGeometry(0.5, 0)
+      geo.applyMatrix4(new THREE.Matrix4().makeScale(0.3, 1.4, 0.3))
+      const mat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(0x818cf8),
+        transparent: true,
+        opacity: 0,
+      })
+      const spark = new THREE.Mesh(geo, mat)
+      spark.userData.phase = i / sparkCount
+      spark.userData.speed = 0.7 + Math.random() * 0.6
+      group.add(spark)
+    }
+    return group
+  }, [])
+
+  const updateLinkSparks = useCallback((group, { start, end }) => {
+    const t = performance.now() * 0.001
+    group.children.forEach(spark => {
+      const progress = (t * spark.userData.speed + spark.userData.phase) % 1
+      spark.position.set(
+        start.x + (end.x - start.x) * progress,
+        start.y + (end.y - start.y) * progress,
+        start.z + (end.z - start.z) * progress
+      )
+      // Electrical flicker — rapid on/off with brightness variation
+      const flicker = Math.sin(t * 14 + spark.userData.phase * 8)
+      const burst = Math.pow(Math.max(0, Math.sin(t * 5 + spark.userData.phase * 4)), 3)
+      spark.material.opacity = Math.max(0, 0.15 + flicker * 0.25 + burst * 0.6)
+      // Spin for dynamic spark look
+      spark.rotation.x = t * 3.5
+      spark.rotation.z = t * 2.8 + spark.userData.phase * Math.PI
+    })
+  }, [])
+
   // Tooltip content
   const tooltipContent = useMemo(() => {
     if (!hoverNode) return null
@@ -249,10 +288,9 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
         linkDirectionalArrowColor={() => 'rgba(100,120,255,0.5)'}
-        linkDirectionalParticles={3}
-        linkDirectionalParticleWidth={1.8}
-        linkDirectionalParticleSpeed={0.006}
-        linkDirectionalParticleColor={() => '#818cf8'}
+        linkThreeObjectExtend={true}
+        linkThreeObject={createLinkSparks}
+        linkPositionUpdate={updateLinkSparks}
         cooldownTicks={80}
         d3AlphaDecay={0.04}
         d3VelocityDecay={0.3}
