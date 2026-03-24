@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 # Load .env from the same directory as this file (backend/)
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "sapgraph123")
+NEO4J_URI = os.getenv("NEO4J_URI", "neo4j+s://1c15aba9.databases.neo4j.io")
+NEO4J_USER = os.getenv("NEO4J_USER", "1c15aba9")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "h33zMV_gg-AbtLghxspJ4wOBXZfS9xMUpwKP2D8Ju2w")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
