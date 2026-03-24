@@ -1,5 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { sendChatMessage } from './api'
+
+function formatMessage(text) {
+  if (!text) return text
+  // Convert **bold** to <strong>
+  let html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  // Convert *italic* to <em> (but not inside <strong>)
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  // Convert lines starting with - or • to list items
+  html = html.replace(/^[\-•]\s+(.+)$/gm, '<li>$1</li>')
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
+  // Convert numbered lines like "1. text" to list items
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, (match) => {
+    if (!match.includes('<ul>')) return '<ul>' + match + '</ul>'
+    return match
+  })
+  return html
+}
 
 const EXAMPLE_QUERIES = [
   "Which products are associated with the highest number of billing documents?",
@@ -95,7 +114,7 @@ export default function ChatPanel({ onHighlightNodes }) {
       <div className="chat-messages">
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message ${msg.role} ${msg.guardrail ? 'guardrail' : ''}`}>
-            <div>{msg.content}</div>
+            <div dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
             {msg.cypher && (
               <div className="cypher-block">
                 {msg.cypher}

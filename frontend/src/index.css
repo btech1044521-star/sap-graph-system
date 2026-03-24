@@ -577,3 +577,130 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* ─── Chat message formatted content ───────────────────── */
+.chat-message strong {
+  font-weight: 700;
+  color: inherit;
+}
+
+.chat-message em {
+  font-style: italic;
+}
+
+.chat-message ul {
+  margin: 6px 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.chat-message ul li {
+  margin-bottom: 3px;
+  line-height: 1.5;
+}
+
+.chat-message ol {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+/* ─── Responsive ───────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .sidebar-header {
+    min-width: 160px;
+    padding: 12px 16px;
+  }
+
+  .stats-section {
+    min-width: 240px;
+    padding: 10px 16px;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .search-section {
+    min-width: 200px;
+    padding: 10px 16px;
+    border-bottom: none;
+  }
+
+  .node-detail {
+    display: none;
+  }
+
+  .chat-panel {
+    height: 200px;
+    min-height: 160px;
+  }
+
+  .graph-legend {
+    max-height: 120px;
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    max-height: 140px;
+  }
+
+  .sidebar-header h1 {
+    font-size: 13px;
+  }
+
+  .stats-section {
+    display: none;
+  }
+
+  .chat-panel {
+    height: 180px;
+    min-height: 140px;
+  }
+
+  .chat-input-area {
+    padding: 8px 12px;
+  }
+
+  .chat-messages {
+    padding: 8px 12px;
+  }
+
+  .graph-legend {
+    display: none;
+  }
+
+  .graph-controls button {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+}
