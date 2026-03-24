@@ -2,12 +2,38 @@
 Data ingestion script: Loads SAP O2C JSONL data into Neo4j graph.
 
 Graph Model:
-  Nodes: Customer, SalesOrder, SalesOrderItem, Delivery, DeliveryItem,
-         BillingDocument, BillingDocumentItem, JournalEntry, Payment,
-         Product, Plant, Address
-  Edges: PLACED_ORDER, HAS_ITEM, CONTAINS_MATERIAL, FULFILLED_BY,
-         BILLED_IN, GENERATES_JOURNAL_ENTRY, PAID_VIA, HAS_ADDRESS,
-         LOCATED_AT, PRODUCED_AT, etc.
+  Nodes: 
+    - Customer, SalesOrder, SalesOrderItem, Delivery, DeliveryItem
+    - BillingDocument, BillingDocumentItem, JournalEntry, Payment
+    - Product, Plant, Address
+
+  Relationships (with correct directions):
+    - (Customer)-[:PLACED_ORDER]->(SalesOrder)
+    - (SalesOrder)-[:HAS_ITEM]->(SalesOrderItem)
+    - (SalesOrderItem)-[:CONTAINS_PRODUCT]->(Product)
+    - (SalesOrderItem)-[:FULFILLED_FROM_PLANT]->(Plant)
+    
+    - (Delivery)-[:HAS_ITEM]->(DeliveryItem)
+    - (SalesOrder)-[:FULFILLED_BY]->(DeliveryItem)
+    - (DeliveryItem)-[:SHIPPED_FROM]->(Plant)
+    
+    - (BillingDocument)-[:HAS_ITEM]->(BillingDocumentItem)
+    - (BillingDocumentItem)-[:BILLS_PRODUCT]->(Product)  # Note: direction is BillingDocumentItem → Product
+    - (SalesOrder)-[:BILLED_IN]->(BillingDocumentItem)
+    - (Customer)-[:BILLED_TO]->(BillingDocument)
+    
+    - (BillingDocument)-[:GENERATES_JOURNAL_ENTRY]->(JournalEntry)
+    - (JournalEntry)-[:POSTED_FOR]->(Customer)
+    
+    - (Payment)-[:PAID_BY]->(Customer)
+    - (Payment)-[:PAYS_FOR]->(SalesOrder)
+    
+    - (Customer)-[:HAS_ADDRESS]->(Address)
+    - (Product)-[:PRODUCED_AT]->(Plant)
+
+Key Path for Billing Analysis:
+  (BillingDocument)-[:HAS_ITEM]->(BillingDocumentItem)-[:BILLS_PRODUCT]->(Product)
+  This path answers: Which products appear in which billing documents?
 """
 
 import json
@@ -142,7 +168,7 @@ def ingest_plants(session):
                 pl.language = r.language
         """, {"batch": batch})
 
-    # Product-Plant assignments
+    # Product-Plant assignments (PRODUCED_AT relationship)
     pp_records = read_jsonl_files("product_plants")
     for batch_start in range(0, len(pp_records), 500):
         batch = pp_records[batch_start:batch_start + 500]
@@ -307,7 +333,7 @@ def ingest_billing_documents(session):
                 b.companyCode = r.companyCode
         """, {"batch": batch})
 
-    # Billing Items
+    # Billing Items - Creates HAS_ITEM, BILLED_IN, and BILLS_PRODUCT relationships
     print("Loading Billing Document Items...")
     items = read_jsonl_files("billing_document_items")
     for batch_start in range(0, len(items), 500):
@@ -324,12 +350,18 @@ def ingest_billing_documents(session):
                 bi.currency = r.transactionCurrency,
                 bi.referenceSdDocument = r.referenceSdDocument,
                 bi.referenceSdDocumentItem = r.referenceSdDocumentItem
+            
+            // Connect to BillingDocument
             WITH bi, r
             MATCH (b:BillingDocument {id: r.billingDocument})
             MERGE (b)-[:HAS_ITEM]->(bi)
+            
+            // Connect to SalesOrder (if exists)
             WITH bi, r
             MATCH (so:SalesOrder {id: r.referenceSdDocument})
             MERGE (so)-[:BILLED_IN]->(bi)
+            
+            // Connect to Product - Direction: BillingDocumentItem → Product
             WITH bi, r
             MATCH (p:Product {id: r.material})
             MERGE (bi)-[:BILLS_PRODUCT]->(p)
@@ -418,6 +450,8 @@ def create_indexes(session):
         "CREATE INDEX IF NOT EXISTS FOR (pay:Payment) ON (pay.customer)",
         "CREATE INDEX IF NOT EXISTS FOR (di:DeliveryItem) ON (di.referenceSdDocument)",
         "CREATE INDEX IF NOT EXISTS FOR (bi:BillingDocumentItem) ON (bi.referenceSdDocument)",
+        "CREATE INDEX IF NOT EXISTS FOR (bi:BillingDocumentItem) ON (bi.material)",
+        "CREATE INDEX IF NOT EXISTS FOR (p:Product) ON (p.id)",
     ]
     for idx in indexes:
         session.run(idx)
@@ -434,54 +468,55 @@ def main():
     with driver.session() as session:
         start = time.time()
 
-        print("\n[1/10] Creating constraints...")
+        print("\n[1/11] Creating constraints...")
         create_constraints(session)
 
-        print("\n[2/10] Ingesting Customers...")
+        print("\n[2/11] Ingesting Customers...")
         ingest_customers(session)
 
-        print("\n[3/10] Ingesting Addresses...")
+        print("\n[3/11] Ingesting Addresses...")
         ingest_addresses(session)
 
-        print("\n[4/10] Ingesting Products...")
+        print("\n[4/11] Ingesting Products...")
         ingest_products(session)
 
-        print("\n[5/10] Ingesting Plants...")
+        print("\n[5/11] Ingesting Plants...")
         ingest_plants(session)
 
-        print("\n[6/10] Ingesting Sales Orders...")
+        print("\n[6/11] Ingesting Sales Orders...")
         ingest_sales_orders(session)
 
-        print("\n[7/10] Ingesting Deliveries...")
+        print("\n[7/11] Ingesting Deliveries...")
         ingest_deliveries(session)
 
-        print("\n[8/10] Ingesting Billing Documents...")
+        print("\n[8/11] Ingesting Billing Documents...")
         ingest_billing_documents(session)
 
-        print("\n[9/10] Ingesting Journal Entries...")
+        print("\n[9/11] Ingesting Journal Entries...")
         ingest_journal_entries(session)
 
-        print("\n[10/10] Ingesting Payments...")
+        print("\n[10/11] Ingesting Payments...")
         ingest_payments(session)
 
-        print("\nCreating additional indexes...")
+        print("\n[11/11] Creating additional indexes...")
         create_indexes(session)
 
         elapsed = time.time() - start
-        print(f"\nIngestion complete in {elapsed:.1f}s")
+        print(f"\n✅ Ingestion complete in {elapsed:.1f}s")
 
         # Print stats
         result = session.run("MATCH (n) RETURN labels(n)[0] AS label, count(n) AS count ORDER BY count DESC")
-        print("\nNode counts:")
+        print("\n📊 Node counts:")
         for r in result:
             print(f"  {r['label']}: {r['count']}")
 
         result = session.run("MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count ORDER BY count DESC")
-        print("\nRelationship counts:")
+        print("\n🔗 Relationship counts:")
         for r in result:
             print(f"  {r['type']}: {r['count']}")
 
     Neo4jConnection.close()
+    print("\n🎉 Migration to AuraDB complete!")
 
 
 if __name__ == "__main__":
