@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from database import run_cypher, Neo4jConnection
-from llm_engine import query as llm_query
+from llm_engine import query as llm_query, get_metrics
 
 app = FastAPI(title="SAP O2C Graph Query System")
 
@@ -235,6 +235,12 @@ def health():
         return {"status": "ok", "neo4j": "connected"}
     except Exception as e:
         return {"status": "degraded", "neo4j": str(e)}
+
+
+@app.get("/api/metrics")
+def query_metrics():
+    """Query success/error rate metrics."""
+    return get_metrics()
 
 
 @app.on_event("shutdown")

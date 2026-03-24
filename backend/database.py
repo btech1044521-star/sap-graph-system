@@ -25,7 +25,10 @@ def get_session():
     return driver.session()
 
 
-def run_cypher(query: str, params: dict = None):
+def run_cypher(query: str, params: dict = None, timeout: int = None):
     with get_session() as session:
-        result = session.run(query, params or {})
+        if timeout:
+            result = session.run(query, params or {}, timeout=timeout)
+        else:
+            result = session.run(query, params or {})
         return [record.data() for record in result]
