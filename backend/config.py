@@ -31,6 +31,14 @@ DATA_DIR = os.getenv("DATA_DIR", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-2.0-flash-exp:free")
 
+# Groq (free tier — llama3-70b)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+# Google Gemini (free tier)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
 # Error-handling / retry settings
 MAX_CYPHER_RETRIES = int(os.getenv("MAX_CYPHER_RETRIES", "3"))
 CYPHER_TIMEOUT = int(os.getenv("CYPHER_TIMEOUT", "30"))

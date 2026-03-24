@@ -17,6 +17,8 @@ from datetime import datetime
 
 from config import (
     OPENROUTER_API_KEY, OPENROUTER_MODEL,
+    GROQ_API_KEY, GROQ_MODEL,
+    GEMINI_API_KEY, GEMINI_MODEL,
     MAX_CYPHER_RETRIES, CYPHER_TIMEOUT,
 )
 from database import run_cypher
@@ -484,9 +486,96 @@ def _call_openrouter(system: str, prompt: str, conversation_history: list[dict] 
         return data["choices"][0]["message"]["content"].strip()
 
 
+def _call_groq(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Call Groq API (free tier — llama3 70b)."""
+    messages = [{"role": "system", "content": system}]
+
+    if conversation_history:
+        for msg in conversation_history[-6:]:
+            messages.append({"role": msg.get("role", "user"), "content": msg["content"]})
+
+    messages.append({"role": "user", "content": prompt})
+
+    with httpx.Client(timeout=120.0) as client:
+        resp = client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": GROQ_MODEL,
+                "messages": messages,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
+
+
+def _call_gemini(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
+    """Call Google Gemini API (free tier)."""
+    contents = []
+
+    if conversation_history:
+        for msg in conversation_history[-6:]:
+            role = "model" if msg.get("role") == "assistant" else "user"
+            contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+
+    contents.append({"role": "user", "parts": [{"text": prompt}]})
+
+    with httpx.Client(timeout=120.0) as client:
+        resp = client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+            params={"key": GEMINI_API_KEY},
+            headers={"Content-Type": "application/json"},
+            json={
+                "system_instruction": {"parts": [{"text": system}]},
+                "contents": contents,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+
+def _build_provider_chain() -> list:
+    """Build ordered list of (name, callable) providers with valid keys."""
+    providers = []
+    if OPENROUTER_API_KEY:
+        providers.append(("openrouter", _call_openrouter))
+    if GROQ_API_KEY:
+        providers.append(("groq", _call_groq))
+    if GEMINI_API_KEY:
+        providers.append(("gemini", _call_gemini))
+    return providers
+
+
 def _call_llm(system: str, prompt: str, conversation_history: list[dict] = None) -> str:
-    """Route all LLM calls through OpenRouter."""
-    return _call_openrouter(system, prompt, conversation_history)
+    """Call LLM with automatic failover across providers on 429/5xx errors."""
+    providers = _build_provider_chain()
+    if not providers:
+        raise RuntimeError("No LLM API keys configured. Set OPENROUTER_API_KEY, GROQ_API_KEY, or GEMINI_API_KEY in .env")
+
+    last_error = None
+    for name, call_fn in providers:
+        try:
+            result = call_fn(system, prompt, conversation_history)
+            logger.info(f"LLM call succeeded via {name}")
+            return result
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            if status in (429, 502, 503, 529):
+                logger.warning(f"Provider {name} returned {status}, trying next provider...")
+                last_error = e
+                continue
+            raise
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            logger.warning(f"Provider {name} connection failed: {e}, trying next...")
+            last_error = e
+            continue
+
+    raise RuntimeError(f"All LLM providers exhausted. Last error: {last_error}")
 
 
 def generate_answer(user_query: str, cypher_query: str, results: list[dict]) -> str:
