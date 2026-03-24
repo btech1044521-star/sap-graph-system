@@ -1,11 +1,30 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react'
-import ForceGraph2D from 'react-force-graph-2d'
+import React, { useRef, useCallback, useEffect, useState, useMemo } from 'react'
+import ForceGraph3D from 'react-force-graph-3d'
+import SpriteText from 'three-spritetext'
+import * as THREE from 'three'
 import { expandNode } from './api'
+
+const NODE_SHAPES = {
+  Customer: 'sphere',
+  SalesOrder: 'box',
+  SalesOrderItem: 'box',
+  Delivery: 'octahedron',
+  DeliveryItem: 'octahedron',
+  BillingDocument: 'dodecahedron',
+  BillingDocumentItem: 'dodecahedron',
+  JournalEntry: 'torus',
+  Payment: 'cone',
+  Product: 'icosahedron',
+  Plant: 'cylinder',
+  Address: 'tetrahedron',
+}
 
 export default function GraphVisualization({ graphData, onNodeSelect, onExpandGraph, nodeColors, highlightNodes }) {
   const graphRef = useRef()
   const containerRef = useRef()
-  const [dimensions, setDimensions] = useState({ width: 800, height: 400 })
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
+  const [hoverNode, setHoverNode] = useState(null)
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -26,13 +45,13 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
     }
   }, [])
 
-  const formattedData = React.useMemo(() => {
+  const formattedData = useMemo(() => {
     const nodes = graphData.nodes.map(n => ({
       id: n.id,
       label: n.label,
       name: n.properties?.name || n.properties?.shortName || n.properties?.description || n.id,
       properties: n.properties,
-      color: nodeColors[n.label] || '#adb5bd',
+      color: nodeColors[n.label] || '#888',
     }))
     const nodeIds = new Set(nodes.map(n => n.id))
     const links = graphData.edges
@@ -51,7 +70,16 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
 
   const handleNodeClick = useCallback(async (node) => {
     onNodeSelect({ id: node.id, label: node.label, properties: node.properties })
-
+    // Focus camera on clicked node
+    const distance = 120
+    if (graphRef.current) {
+      const { x, y, z } = node
+      graphRef.current.cameraPosition(
+        { x: x + distance, y: y + distance / 2, z: z + distance },
+        { x, y, z },
+        1000
+      )
+    }
     try {
       const data = await expandNode(node.label, node.id)
       onExpandGraph(data.nodes, data.edges)
@@ -60,69 +88,110 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
     }
   }, [onNodeSelect, onExpandGraph])
 
-  const paintNode = useCallback((node, ctx, globalScale) => {
-    const fontSize = Math.max(12 / globalScale, 3)
-    const radius = highlightNodes.has(node.id) ? 8 : 5
-    const alpha = highlightNodes.size > 0 ? (highlightNodes.has(node.id) ? 1 : 0.2) : 1
+  const handleNodeHover = useCallback((node, prevNode) => {
+    setHoverNode(node || null)
+    if (containerRef.current) {
+      containerRef.current.style.cursor = node ? 'pointer' : 'default'
+    }
+  }, [])
 
-    ctx.globalAlpha = alpha
+  const handlePointerMove = useCallback((e) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      setTooltipPos({ x: e.clientX - rect.left + 14, y: e.clientY - rect.top + 14 })
+    }
+  }, [])
 
-    // Node circle
-    ctx.beginPath()
-    ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI)
-    ctx.fillStyle = node.color
-    ctx.fill()
+  const createNodeObject = useCallback((node) => {
+    const isHighlighted = highlightNodes.size > 0 && highlightNodes.has(node.id)
+    const isDimmed = highlightNodes.size > 0 && !highlightNodes.has(node.id)
+    const shape = NODE_SHAPES[node.label] || 'sphere'
+    const baseSize = isHighlighted ? 6 : 4
+    const color = new THREE.Color(node.color)
+    if (isDimmed) color.multiplyScalar(0.25)
 
-    if (highlightNodes.has(node.id)) {
-      ctx.strokeStyle = '#fff'
-      ctx.lineWidth = 2 / globalScale
-      ctx.stroke()
+    const mat = new THREE.MeshPhongMaterial({
+      color,
+      transparent: isDimmed,
+      opacity: isDimmed ? 0.15 : 0.95,
+      shininess: 80,
+    })
+
+    let geometry
+    switch (shape) {
+      case 'box':
+        geometry = new THREE.BoxGeometry(baseSize, baseSize, baseSize)
+        break
+      case 'octahedron':
+        geometry = new THREE.OctahedronGeometry(baseSize * 0.7)
+        break
+      case 'dodecahedron':
+        geometry = new THREE.DodecahedronGeometry(baseSize * 0.7)
+        break
+      case 'torus':
+        geometry = new THREE.TorusGeometry(baseSize * 0.5, baseSize * 0.2, 8, 16)
+        break
+      case 'cone':
+        geometry = new THREE.ConeGeometry(baseSize * 0.5, baseSize, 8)
+        break
+      case 'icosahedron':
+        geometry = new THREE.IcosahedronGeometry(baseSize * 0.7)
+        break
+      case 'cylinder':
+        geometry = new THREE.CylinderGeometry(baseSize * 0.4, baseSize * 0.4, baseSize, 12)
+        break
+      case 'tetrahedron':
+        geometry = new THREE.TetrahedronGeometry(baseSize * 0.7)
+        break
+      default:
+        geometry = new THREE.SphereGeometry(baseSize * 0.6, 16, 12)
     }
 
-    // Label
-    if (globalScale > 1.2 || highlightNodes.has(node.id)) {
-      ctx.font = `${fontSize}px 'Segoe UI', sans-serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillStyle = '#e4e6eb'
-      const displayName = (node.name || node.id).substring(0, 20)
-      ctx.fillText(displayName, node.x, node.y + radius + 2)
+    const mesh = new THREE.Mesh(geometry, mat)
+
+    // Glow ring for highlighted nodes
+    if (isHighlighted) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(baseSize * 0.8, baseSize * 1.0, 24),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+      )
+      mesh.add(ring)
     }
 
-    ctx.globalAlpha = 1
-  }, [highlightNodes])
+    // Label sprite
+    const displayName = (node.name || node.id).substring(0, 18)
+    const sprite = new SpriteText(displayName)
+    sprite.color = isDimmed ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)'
+    sprite.textHeight = 2.5
+    sprite.position.y = -(baseSize + 2)
+    sprite.fontFace = 'Inter, Segoe UI, sans-serif'
+    sprite.fontWeight = '500'
+    mesh.add(sprite)
 
-  const paintLink = useCallback((link, ctx, globalScale) => {
-    const alpha = highlightNodes.size > 0
-      ? (highlightNodes.has(link.source.id) || highlightNodes.has(link.target.id) ? 0.6 : 0.05)
-      : 0.15
-    ctx.globalAlpha = alpha
-    ctx.strokeStyle = '#4f8cff'
-    ctx.lineWidth = 0.5
-    ctx.beginPath()
-    ctx.moveTo(link.source.x, link.source.y)
-    ctx.lineTo(link.target.x, link.target.y)
-    ctx.stroke()
-
-    // Edge label when zoomed in
-    if (globalScale > 2.5) {
-      const midX = (link.source.x + link.target.x) / 2
-      const midY = (link.source.y + link.target.y) / 2
-      ctx.font = `${8 / globalScale}px 'Segoe UI', sans-serif`
-      ctx.textAlign = 'center'
-      ctx.fillStyle = '#a0a3ab'
-      ctx.fillText(link.type, midX, midY)
-    }
-
-    ctx.globalAlpha = 1
+    return mesh
   }, [highlightNodes])
 
   const handleZoomToFit = () => {
-    if (graphRef.current) graphRef.current.zoomToFit(400, 50)
+    if (graphRef.current) graphRef.current.zoomToFit(400, 80)
   }
 
+  const handleResetCamera = () => {
+    if (graphRef.current) {
+      graphRef.current.cameraPosition({ x: 0, y: 0, z: 300 }, { x: 0, y: 0, z: 0 }, 1000)
+    }
+  }
+
+  // Tooltip content
+  const tooltipContent = useMemo(() => {
+    if (!hoverNode) return null
+    const props = hoverNode.properties || {}
+    const entries = Object.entries(props).filter(([k]) => k !== 'id').slice(0, 8)
+    return { label: hoverNode.label, id: hoverNode.id, name: hoverNode.name, entries }
+  }, [hoverNode])
+
   return (
-    <div className="graph-container" ref={containerRef}>
+    <div className="graph-container" ref={containerRef} onPointerMove={handlePointerMove}>
+      {/* Legend */}
       <div className="graph-legend">
         {Object.entries(nodeColors).map(([label, color]) => (
           <div className="legend-item" key={label}>
@@ -131,30 +200,61 @@ export default function GraphVisualization({ graphData, onNodeSelect, onExpandGr
           </div>
         ))}
       </div>
+
+      {/* Controls */}
       <div className="graph-controls">
         <button onClick={handleZoomToFit}>Fit View</button>
-        <button onClick={() => graphRef.current?.centerAt(0, 0, 400)}>Center</button>
+        <button onClick={handleResetCamera}>Reset</button>
       </div>
-      <ForceGraph2D
+
+      {/* Hover Tooltip */}
+      {tooltipContent && (
+        <div className="graph-tooltip" style={{ left: tooltipPos.x, top: tooltipPos.y }}>
+          <div className="tooltip-header">
+            <span className="tooltip-badge">{tooltipContent.label}</span>
+            <span className="tooltip-id">{tooltipContent.id}</span>
+          </div>
+          {tooltipContent.name !== tooltipContent.id && (
+            <div className="tooltip-name">{tooltipContent.name}</div>
+          )}
+          {tooltipContent.entries.length > 0 && (
+            <table className="tooltip-props">
+              <tbody>
+                {tooltipContent.entries.map(([k, v]) => (
+                  <tr key={k}>
+                    <td>{k}</td>
+                    <td>{v === null || v === '' ? '—' : String(v).substring(0, 40)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <div className="tooltip-hint">Click to expand</div>
+        </div>
+      )}
+
+      {/* 3D Graph */}
+      <ForceGraph3D
         ref={graphRef}
         width={dimensions.width}
         height={dimensions.height}
         graphData={formattedData}
-        nodeCanvasObject={paintNode}
-        linkCanvasObject={paintLink}
+        nodeThreeObject={createNodeObject}
+        nodeThreeObjectExtend={false}
         onNodeClick={handleNodeClick}
-        nodePointerAreaPaint={(node, color, ctx) => {
-          ctx.beginPath()
-          ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI)
-          ctx.fillStyle = color
-          ctx.fill()
-        }}
-        cooldownTicks={100}
-        d3AlphaDecay={0.05}
+        onNodeHover={handleNodeHover}
+        linkColor={() => 'rgba(255,255,255,0.12)'}
+        linkWidth={0.3}
+        linkOpacity={0.2}
+        linkDirectionalArrowLength={3}
+        linkDirectionalArrowRelPos={1}
+        linkDirectionalArrowColor={() => 'rgba(255,255,255,0.25)'}
+        cooldownTicks={80}
+        d3AlphaDecay={0.04}
         d3VelocityDecay={0.3}
-        backgroundColor="#0f1117"
-        enableZoomInteraction={true}
-        enablePanInteraction={true}
+        backgroundColor="#000000"
+        showNavInfo={false}
+        enableNavigationControls={true}
       />
     </div>
   )

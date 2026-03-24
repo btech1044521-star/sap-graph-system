@@ -87,9 +87,9 @@ export default function ChatPanel({ onHighlightNodes }) {
   return (
     <div className="chat-panel">
       <div className="chat-header">
-        <h3>💬 Query Assistant</h3>
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-          Powered by Gemini + Neo4j
+        <h3>Query Assistant</h3>
+        <span style={{ fontSize: 10, color: '#555', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+          Gemini + Neo4j
         </span>
       </div>
       <div className="chat-messages">
@@ -111,14 +111,17 @@ export default function ChatPanel({ onHighlightNodes }) {
                 onClick={() => handleSend(q)}
                 style={{
                   padding: '6px 12px',
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6,
-                  color: 'var(--text-primary)',
-                  fontSize: 12,
+                  background: '#111',
+                  border: '1px solid #222',
+                  borderRadius: 4,
+                  color: '#aaa',
+                  fontSize: 11,
                   cursor: 'pointer',
                   textAlign: 'left',
+                  transition: 'border-color 0.15s',
                 }}
+                onMouseEnter={e => e.target.style.borderColor = '#444'}
+                onMouseLeave={e => e.target.style.borderColor = '#222'}
               >
                 {q}
               </button>

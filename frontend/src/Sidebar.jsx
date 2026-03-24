@@ -163,10 +163,10 @@ export default function Sidebar({ overview, selectedNode, onNodeSelect, onExpand
       )}
 
       {!nodeDetail && !searchResults.length && (
-        <div style={{ padding: '20px', color: 'var(--text-secondary)', fontSize: 13 }}>
-          <p>Click a node in the graph or search above to inspect it.</p>
-          <p style={{ marginTop: 10 }}>
-            The graph shows the Order-to-Cash flow: Customers → Sales Orders → Deliveries → Billing → Payments
+        <div style={{ padding: '20px 24px', color: '#555', fontSize: 12, lineHeight: 1.6 }}>
+          <p>Click a node in the 3D graph or search above to inspect it.</p>
+          <p style={{ marginTop: 10, color: '#444' }}>
+            Hover over nodes to see details. Click to expand and traverse the graph.
           </p>
         </div>
       )}
