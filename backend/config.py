@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 NEO4J_URI = os.getenv("NEO4J_URI", "neo4j+s://1c15aba9.databases.neo4j.io")
-NEO4J_USER = os.getenv("NEO4J_USER", "1c15aba9")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "h33zMV_gg-AbtLghxspJ4wOBXZfS9xMUpwKP2D8Ju2w")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 DATA_DIR = os.getenv("DATA_DIR", "")
 
 # OpenRouter LLM settings
