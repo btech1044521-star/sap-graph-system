@@ -33,8 +33,9 @@ services:
       - key: CYPHER_TIMEOUT
         value: "30"
 
-  - type: static
+  - type: web
     name: sap-graph-frontend
+    env: static
     rootDir: frontend
     plan: free
     buildCommand: npm ci && npm run build
