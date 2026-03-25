@@ -37,8 +37,9 @@ body {
 
 /* ─── Sidebar ──────────────────────────────────────────── */
 .sidebar {
-  width: 320px;
-  min-width: 320px;
+  width: clamp(280px, 24vw, 360px);
+  min-width: 280px;
+  max-width: 360px;
   background: var(--bg-primary);
   border-right: 1px solid var(--border);
   display: flex;
@@ -255,6 +256,7 @@ body {
 /* ─── Main Area ────────────────────────────────────────── */
 .main-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -607,8 +609,9 @@ body {
 /* ─── Responsive ───────────────────────────────────────── */
 @media (max-width: 1100px) {
   .sidebar {
-    width: 260px;
-    min-width: 260px;
+    width: clamp(250px, 28vw, 320px);
+    min-width: 250px;
+    max-width: 320px;
   }
 
   .stats-grid {
@@ -619,42 +622,48 @@ body {
 @media (max-width: 860px) {
   .app-container {
     flex-direction: column;
+    height: auto;
+    min-height: 100vh;
   }
 
   .sidebar {
     width: 100%;
     min-width: unset;
-    max-height: 200px;
+    max-width: unset;
+    max-height: 48vh;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    flex-direction: row;
-    overflow-x: auto;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .sidebar-header {
-    min-width: 160px;
     padding: 12px 16px;
   }
 
   .stats-section {
-    min-width: 240px;
     padding: 10px 16px;
-    border-bottom: none;
-    border-right: 1px solid var(--border);
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
 
   .stats-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .search-section {
-    min-width: 200px;
     padding: 10px 16px;
-    border-bottom: none;
+    border-bottom: 1px solid var(--border);
   }
 
   .node-detail {
-    display: none;
+    display: block;
+    padding: 12px 16px;
+  }
+
+  .main-area {
+    min-height: 52vh;
   }
 
   .chat-panel {
@@ -671,7 +680,7 @@ body {
 
 @media (max-width: 600px) {
   .sidebar {
-    max-height: 140px;
+    max-height: 52vh;
   }
 
   .sidebar-header h1 {
@@ -679,7 +688,11 @@ body {
   }
 
   .stats-section {
-    display: none;
+    display: block;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .chat-panel {
