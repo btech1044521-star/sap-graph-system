@@ -5,10 +5,11 @@ Provides endpoints for graph exploration and LLM-powered natural language querie
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from database import run_cypher, Neo4jConnection
 from llm_engine import query as llm_query, get_metrics
 from config import NEO4J_URI, NEO4J_USER
+from guardrails_engine import guard_input, guard_output
 
 app = FastAPI(title="SAP O2C Graph Query System")
 
@@ -28,13 +29,13 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
-    history: list[dict] = []
+    history: list[dict] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):
     answer: str
     cypher: str | None = None
-    results: list[dict] = []
+    results: list[dict] = Field(default_factory=list)
     guardrail: bool = False
 
 
@@ -226,7 +227,21 @@ def search_nodes(q: str, label: str = None, limit: int = 20):
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
     """Natural language query interface powered by LLM."""
+    blocked, block_message = guard_input(req.message)
+    if blocked:
+        return ChatResponse(answer=block_message or "Request blocked by guardrails.", guardrail=True)
+
     result = llm_query(req.message, req.history)
+
+    if result.get("guardrail"):
+        return ChatResponse(**result)
+
+    blocked, safe_answer = guard_output(result.get("answer", ""))
+    if blocked:
+        return ChatResponse(answer=safe_answer, guardrail=True)
+
+    result["answer"] = safe_answer
+    result["guardrail"] = False
     return ChatResponse(**result)
 
 
