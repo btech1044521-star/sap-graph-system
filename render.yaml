@@ -37,7 +37,6 @@ services:
     name: sap-graph-frontend
     env: static
     rootDir: frontend
-    plan: free
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
