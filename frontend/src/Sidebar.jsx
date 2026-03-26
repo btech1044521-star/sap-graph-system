@@ -88,11 +88,14 @@ export default function Sidebar({ overview, selectedNode, onNodeSelect, onExpand
       <div className="search-section">
         <div className="search-input-wrapper">
           <input
+            id="node-search"
+            name="node-search"
             className="search-input"
             type="text"
             placeholder="Search nodes by ID or name..."
             value={searchQuery}
             onChange={e => handleSearch(e.target.value)}
+            autoComplete="off"
           />
         </div>
         {searchResults.length > 0 && (

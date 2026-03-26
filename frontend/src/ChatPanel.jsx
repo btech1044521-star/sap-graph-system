@@ -159,6 +159,8 @@ export default function ChatPanel({ onHighlightNodes }) {
       </div>
       <div className="chat-input-area">
         <input
+          id="chat-input"
+          name="chat-input"
           className="chat-input"
           type="text"
           placeholder="Ask about O2C data... (e.g., 'Which products have the most billing documents?')"
@@ -166,6 +168,7 @@ export default function ChatPanel({ onHighlightNodes }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={loading}
+          autoComplete="off"
         />
         <button className="send-btn" onClick={() => handleSend()} disabled={loading || !input.trim()}>
           Send
