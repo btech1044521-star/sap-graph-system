@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from database import run_cypher, Neo4jConnection
 from llm_engine import query as llm_query, get_metrics
-from config import NEO4J_URI, NEO4J_USER
+from config import CORS_ORIGINS, NEO4J_URI, NEO4J_USER
 from guardrails_engine import guard_input, guard_output
 
 app = FastAPI(title="SAP O2C Graph Query System")
@@ -18,8 +18,8 @@ print(f"[config] NEO4J_URI={NEO4J_URI}  NEO4J_USER={NEO4J_USER}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

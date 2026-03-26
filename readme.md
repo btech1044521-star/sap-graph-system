@@ -29,6 +29,7 @@ Use the blueprint file at `render.yaml`.
 	  - `NEO4J_URI`
 	  - `NEO4J_USER`
 	  - `NEO4J_PASSWORD`
+		 - `CORS_ORIGINS=https://<your-frontend-service>.onrender.com`
 	  - one or more LLM keys/models
 	- Frontend:
 	  - `VITE_API_BASE_URL=https://<your-backend-service>.onrender.com/api`
@@ -48,6 +49,7 @@ Backend health endpoint:
 3. Railway start command can use `backend/Procfile`:
 	- `web: uvicorn main:app --host 0.0.0.0 --port $PORT`
 4. Add backend env vars (same list as Render).
+	- Include `CORS_ORIGINS=https://<your-frontend>.up.railway.app` when frontend is hosted separately.
 
 ### Frontend service
 
