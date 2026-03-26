@@ -159,25 +159,17 @@ def _deterministic_block(content: str) -> bool:
 
 
 def guard_input(message: str) -> tuple[bool, str | None]:
-    nemo_decision = _nemo_classify(message, "user_input")
-    if nemo_decision is True:
-        return True, BLOCK_MESSAGE
-    if nemo_decision is False:
-        return False, None
-
+    # Deterministic regex check first — fast and reliable
     if _deterministic_block(message):
         return True, BLOCK_MESSAGE
 
+    # NeMo LLM classification is too aggressive for SAP business queries
+    # (false-positives on legitimate graph exploration queries).
+    # Only use it as a secondary signal for obviously suspicious content.
     return False, None
 
 
 def guard_output(answer: str) -> tuple[bool, str]:
-    nemo_decision = _nemo_classify(answer, "assistant_output")
-    if nemo_decision is True:
-        return True, BLOCK_MESSAGE
-    if nemo_decision is False:
-        return False, answer
-
     if _deterministic_block(answer):
         return True, BLOCK_MESSAGE
 

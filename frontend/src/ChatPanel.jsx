@@ -29,17 +29,36 @@ const EXAMPLE_QUERIES = [
   "Show me incomplete order flows",
 ]
 
-export default function ChatPanel({ onHighlightNodes }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Welcome! I can help you explore the SAP Order-to-Cash data. Ask me about sales orders, deliveries, billing documents, payments, customers, products, and their relationships.\n\nTry one of the example queries below, or ask your own question.',
+const WELCOME_MESSAGE = {
+  role: 'assistant',
+  content: 'Welcome! I can help you explore the SAP Order-to-Cash data. Ask me about sales orders, deliveries, billing documents, payments, customers, products, and their relationships.\n\nTry one of the example queries below, or ask your own question.',
+}
+
+function loadMessages() {
+  try {
+    const stored = localStorage.getItem('sap-chat-history')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
     }
-  ])
+  } catch {}
+  return [WELCOME_MESSAGE]
+}
+
+export default function ChatPanel({ onHighlightNodes }) {
+  const [messages, setMessages] = useState(loadMessages)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showExamples, setShowExamples] = useState(true)
+  const [showExamples, setShowExamples] = useState(() => {
+    const stored = localStorage.getItem('sap-chat-history')
+    return !stored || JSON.parse(stored).length <= 1
+  })
   const messagesEndRef = useRef(null)
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    localStorage.setItem('sap-chat-history', JSON.stringify(messages))
+  }, [messages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -158,6 +177,19 @@ export default function ChatPanel({ onHighlightNodes }) {
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input-area">
+        <button
+          className="send-btn"
+          onClick={() => {
+            setMessages([WELCOME_MESSAGE])
+            setShowExamples(true)
+            localStorage.removeItem('sap-chat-history')
+          }}
+          disabled={loading || messages.length <= 1}
+          title="Clear chat history"
+          style={{ background: '#ef4444', marginRight: 4, minWidth: 36, padding: '0 8px' }}
+        >
+          ✕
+        </button>
         <input
           id="chat-input"
           name="chat-input"
