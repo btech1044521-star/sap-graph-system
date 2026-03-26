@@ -43,11 +43,12 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 MAX_CYPHER_RETRIES = int(os.getenv("MAX_CYPHER_RETRIES", "3"))
 CYPHER_TIMEOUT = int(os.getenv("CYPHER_TIMEOUT", "30"))
 
-CORS_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173",
-    ).split(",")
-    if origin.strip()
-]
+# CORS: default to wildcard so deploys work out-of-the-box.
+# Set CORS_ORIGINS env var to a comma-separated list to restrict.
+_cors_raw = os.getenv("CORS_ORIGINS", "").strip()
+if not _cors_raw or _cors_raw == "*":
+    CORS_ORIGINS = ["*"]
+else:
+    CORS_ORIGINS = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+
+print(f"[config] CORS_ORIGINS={CORS_ORIGINS}")

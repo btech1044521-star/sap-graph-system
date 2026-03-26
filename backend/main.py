@@ -13,15 +13,17 @@ from guardrails_engine import guard_input, guard_output
 
 app = FastAPI(title="SAP O2C Graph Query System")
 
-# Startup diagnostic — confirm which Neo4j we're connecting to
+# Startup diagnostic
 print(f"[config] NEO4J_URI={NEO4J_URI}  NEO4J_USER={NEO4J_USER}")
+print(f"[config] CORS_ORIGINS={CORS_ORIGINS}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
