@@ -3,13 +3,15 @@ FastAPI backend for SAP O2C Graph Query System.
 Provides endpoints for graph exploration and LLM-powered natural language queries.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from database import run_cypher, Neo4jConnection
 from llm_engine import query as llm_query, get_metrics
 from config import CORS_ORIGINS, NEO4J_URI, NEO4J_USER
 from guardrails_engine import guard_input, guard_output
+import traceback
 
 app = FastAPI(title="SAP O2C Graph Query System")
 
@@ -25,6 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch unhandled exceptions so CORS headers are still returned."""
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
 
 
 # ─── Models ───────────────────────────────────────────────
@@ -52,64 +64,72 @@ class GraphRequest(BaseModel):
 @app.get("/api/graph/overview")
 def graph_overview():
     """Get high-level graph stats and a sample subgraph for initial visualization."""
-    stats = run_cypher("""
-        CALL {
-            MATCH (n) RETURN labels(n)[0] AS label, count(n) AS count
-        }
-        RETURN label, count ORDER BY count DESC
-    """)
-    rel_stats = run_cypher("""
-        CALL {
-            MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count
-        }
-        RETURN type, count ORDER BY count DESC
-    """)
-    return {"nodeStats": stats, "relStats": rel_stats}
+    try:
+        stats = run_cypher("""
+            CALL {
+                MATCH (n) RETURN labels(n)[0] AS label, count(n) AS count
+            }
+            RETURN label, count ORDER BY count DESC
+        """)
+        rel_stats = run_cypher("""
+            CALL {
+                MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count
+            }
+            RETURN type, count ORDER BY count DESC
+        """)
+        return {"nodeStats": stats, "relStats": rel_stats}
+    except Exception as e:
+        print(f"[error] /api/graph/overview failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Graph overview failed: {e}")
 
 
 @app.get("/api/graph/sample")
 def graph_sample(limit: int = 50):
     """Get a sample subgraph showing the O2C flow."""
-    result = run_cypher("""
-        MATCH (c:Customer)-[:PLACED_ORDER]->(so:SalesOrder)
-        WITH c, so LIMIT $limit
-        OPTIONAL MATCH (so)-[:HAS_ITEM]->(si:SalesOrderItem)
-        OPTIONAL MATCH (so)-[:FULFILLED_BY]->(di:DeliveryItem)<-[:HAS_ITEM]-(d:Delivery)
-        OPTIONAL MATCH (so)-[:BILLED_IN]->(bi:BillingDocumentItem)<-[:HAS_ITEM]-(b:BillingDocument)
-        OPTIONAL MATCH (si)-[:CONTAINS_PRODUCT]->(p:Product)
-        RETURN c, so, si, di, d, bi, b, p
-        LIMIT $limit
-    """, {"limit": limit})
+    try:
+        result = run_cypher("""
+            MATCH (c:Customer)-[:PLACED_ORDER]->(so:SalesOrder)
+            WITH c, so LIMIT $limit
+            OPTIONAL MATCH (so)-[:HAS_ITEM]->(si:SalesOrderItem)
+            OPTIONAL MATCH (so)-[:FULFILLED_BY]->(di:DeliveryItem)<-[:HAS_ITEM]-(d:Delivery)
+            OPTIONAL MATCH (so)-[:BILLED_IN]->(bi:BillingDocumentItem)<-[:HAS_ITEM]-(b:BillingDocument)
+            OPTIONAL MATCH (si)-[:CONTAINS_PRODUCT]->(p:Product)
+            RETURN c, so, si, di, d, bi, b, p
+            LIMIT $limit
+        """, {"limit": limit})
 
-    nodes = {}
-    edges = []
+        nodes = {}
+        edges = []
 
-    for record in result:
-        for key, val in record.items():
-            if val is None:
-                continue
-            if isinstance(val, dict):
-                # It's a node
-                node_id = val.get("id")
-                if node_id and node_id not in nodes:
-                    label = key_to_label(key)
-                    nodes[node_id] = {
-                        "id": node_id,
-                        "label": label,
-                        "properties": val
-                    }
+        for record in result:
+            for key, val in record.items():
+                if val is None:
+                    continue
+                if isinstance(val, dict):
+                    # It's a node
+                    node_id = val.get("id")
+                    if node_id and node_id not in nodes:
+                        label = key_to_label(key)
+                        nodes[node_id] = {
+                            "id": node_id,
+                            "label": label,
+                            "properties": val
+                        }
 
-    # Fetch relationships for these nodes
-    node_ids = list(nodes.keys())
-    if node_ids:
-        rels = run_cypher("""
-            MATCH (a)-[r]->(b)
-            WHERE a.id IN $ids AND b.id IN $ids
-            RETURN a.id AS source, b.id AS target, type(r) AS type
-        """, {"ids": node_ids})
-        edges = [{"source": r["source"], "target": r["target"], "type": r["type"]} for r in rels]
+        # Fetch relationships for these nodes
+        node_ids = list(nodes.keys())
+        if node_ids:
+            rels = run_cypher("""
+                MATCH (a)-[r]->(b)
+                WHERE a.id IN $ids AND b.id IN $ids
+                RETURN a.id AS source, b.id AS target, type(r) AS type
+            """, {"ids": node_ids})
+            edges = [{"source": r["source"], "target": r["target"], "type": r["type"]} for r in rels]
 
-    return {"nodes": list(nodes.values()), "edges": edges}
+        return {"nodes": list(nodes.values()), "edges": edges}
+    except Exception as e:
+        print(f"[error] /api/graph/sample failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Graph sample failed: {e}")
 
 
 @app.get("/api/graph/node/{node_label}/{node_id}")
